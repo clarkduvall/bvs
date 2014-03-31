@@ -104,3 +104,5 @@ STATICFILES_DIRS = (
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'templates'),
 )
+
+PUSHER_KEY = os.environ['PUSHER_KEY']
