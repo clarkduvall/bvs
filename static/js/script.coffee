@@ -1,22 +1,50 @@
 app = angular.module 'progressCircle', []
 
 
-app.controller 'Main', ($scope, $http) ->
+app.controller 'Main', ($scope, $http, $interval, $timeout) ->
   # Set our initial actual/expected.
   $scope.actual = 0.0
   $scope.expected = 0.0
+  $scope.cooldown = 0.0
 
+  # Create a Pusher, and subscribe to the private channel.
   pusher = new Pusher PUSHER_KEY
-  channel = pusher.subscribe 'private-test'
+  channel = pusher.subscribe "private-#{CHANNEL}"
+
+  # Handle messages sent to the channel.
   channel.bind 'message', (data) ->
-    $scope.actual += data.strength
+    if data.username isnt USERNAME
+      $scope.expected = parseFloat data.progress
+      if $scope.expected is 1.0
+        alert 'You lost!'
+    else
+      $scope.actual = parseFloat data.progress
+      if $scope.actual is 1.0
+        alert 'You won!'
+    $scope.$apply()
 
+  # Handle clicks.
   $scope.click = ->
-    $http method: 'POST', url: MESSAGE_URL
-      .success (data, status, headers, config) ->
-        console.log data
+    if $scope.cooldown
+      $scope.pauseCooldown = true
+      $timeout ->
+        $scope.pauseCooldown = false
+      , 500
+    else
+      $scope.cooldown = 1.0
+      $http.post MESSAGE_URL,
+                 "progress=#{Math.min 1.0, $scope.actual + 0.05}",
+                 headers: 'Content-Type': 'application/x-www-form-urlencoded'
 
-
+  # Start our cooldown timer.
+  $interval ->
+    if not $scope.pauseCooldown
+      $scope.cooldown = Math.max 0.0, ($scope.cooldown - 0.03).toFixed(2)
+    $scope.actual = Math.max 0.0, $scope.actual - 0.0002
+    # Decay the expected value too to approximate what it will be at.
+    $scope.expected = Math.max 0.0, $scope.expected - 0.0002
+  , 20
+        
 
 # A service to deal with colors/blending.
 app.service 'Color', ->
@@ -108,9 +136,12 @@ app.directive 'progressCircle', ($window, Color) ->
       else
         Color.blend medium, good, 4 * difference
 
-    # Create the two arcs.
+    # Our main outer arc, that tracks actual progress.
     createArc radius * 0.9, radius, 'actual', fadeColors
+    # Second arc which tracks opponent progress.
     createArc radius * 0.8, radius * 0.86, 'expected', -> '#c7e596'
+    # Last arc tracks cooldown timer.
+    createArc radius * 0.7, radius * 0.76, 'cooldown', -> '#8888dd'
 
     # Create the gray middle circle.
     canvas.append 'circle'
@@ -154,3 +185,4 @@ app.directive 'progressCircle', ($window, Color) ->
   scope:
     expected: '='
     actual: '='
+    cooldown: '='

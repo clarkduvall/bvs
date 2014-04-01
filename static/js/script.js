@@ -4,23 +4,49 @@
 
   app = angular.module('progressCircle', []);
 
-  app.controller('Main', function($scope, $http) {
+  app.controller('Main', function($scope, $http, $interval, $timeout) {
     var channel, pusher;
     $scope.actual = 0.0;
     $scope.expected = 0.0;
+    $scope.cooldown = 0.0;
     pusher = new Pusher(PUSHER_KEY);
-    channel = pusher.subscribe('private-test');
+    channel = pusher.subscribe("private-" + CHANNEL);
     channel.bind('message', function(data) {
-      return $scope.actual += data.strength;
+      if (data.username !== USERNAME) {
+        $scope.expected = parseFloat(data.progress);
+        if ($scope.expected === 1.0) {
+          alert('You lost!');
+        }
+      } else {
+        $scope.actual = parseFloat(data.progress);
+        if ($scope.actual === 1.0) {
+          alert('You won!');
+        }
+      }
+      return $scope.$apply();
     });
-    return $scope.click = function() {
-      return $http({
-        method: 'POST',
-        url: MESSAGE_URL
-      }).success(function(data, status, headers, config) {
-        return console.log(data);
-      });
+    $scope.click = function() {
+      if ($scope.cooldown) {
+        $scope.pauseCooldown = true;
+        return $timeout(function() {
+          return $scope.pauseCooldown = false;
+        }, 500);
+      } else {
+        $scope.cooldown = 1.0;
+        return $http.post(MESSAGE_URL, "progress=" + (Math.min(1.0, $scope.actual + 0.05)), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+      }
     };
+    return $interval(function() {
+      if (!$scope.pauseCooldown) {
+        $scope.cooldown = Math.max(0.0, ($scope.cooldown - 0.03).toFixed(2));
+      }
+      $scope.actual = Math.max(0.0, $scope.actual - 0.0002);
+      return $scope.expected = Math.max(0.0, $scope.expected - 0.0002);
+    }, 20);
   });
 
   app.service('Color', function() {
@@ -100,6 +126,9 @@
       createArc(radius * 0.8, radius * 0.86, 'expected', function() {
         return '#c7e596';
       });
+      createArc(radius * 0.7, radius * 0.76, 'cooldown', function() {
+        return '#8888dd';
+      });
       canvas.append('circle').attr('r', radius * 0.7).attr('fill', '#f4f4f4');
       text = canvas.append('text').attr('class', 'percentage').attr('font-family', 'Source Sans Pro').attr('text-anchor', 'middle').attr('font-size', "" + (radius * 0.5) + "px").attr('y', radius * 0.06).attr('x', radius * 0.05);
       changeText = function(val) {
@@ -115,7 +144,8 @@
       link: link,
       scope: {
         expected: '=',
-        actual: '='
+        actual: '=',
+        cooldown: '='
       }
     };
   });

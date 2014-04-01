@@ -8,7 +8,11 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^$', views.home, name='home'),
-    url(r'^pusher/', include('push.urls')),
+    url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
+    url(r'^logout/$', 'django.contrib.auth.views.logout', name='logout'),
 
     url(r'^admin/', include(admin.site.urls)),
+
+    url(r'^pusher/', include('push.urls')),
+    url(r'^(?P<channel>[\w-]+)?$', views.home, name='channel'),
 )
