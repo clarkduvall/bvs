@@ -6,9 +6,10 @@
     <link href="//fonts.googleapis.com/css?family=Source+Sans+Pro:300" rel="stylesheet" type="text/css">
     <link href="{% static 'css/style.css' %}" rel="stylesheet" type="text/css">
   </head>
-  <body ng-controller="Main" ng-click="click()">
+  <body ng-controller="Main">
     <div progress-circle expected="expected" actual="actual" cooldown="cooldown">
     </div>
+    <img src="{% static 'img/'|add:username|add:'.jpg' %}" ng-click="click()">
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.15/angular.min.js"></script>
