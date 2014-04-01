@@ -44,7 +44,7 @@ app.controller 'Main', ($scope, $http, $interval, $timeout) ->
     # Decay the expected value too to approximate what it will be at.
     $scope.expected = Math.max 0.0, $scope.expected - 0.0002
   , 20
-        
+
 
 # A service to deal with colors/blending.
 app.service 'Color', ->
